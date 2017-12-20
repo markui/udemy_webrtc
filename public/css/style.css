@@ -2,3 +2,11 @@ body {
 	background-color: black;
 	color: white;
 }
+
+.grayscale_filter {
+	/*it's usually considered good practice to specify the vendor-prefixed version first
+	and then the non-prefixed version, in order that the non-prefixed property will
+	override the vendor-prefixed property-settings once it's implemented*/
+	-webkit-filter: saturate(0.03);
+	filter: saturate(0.03);
+}
