@@ -4,34 +4,71 @@
     <link rel="stylesheet" type="text/css" href="css/style.css">
   </head>
   <body>
-    Hello, WebRTC!
+    <p>Hello, WebRTC!</p>
+    <div>
+    	Video: <select id="camera"></select>
+    </div>
     <video></video>
 
     <script type="text/javascript">
-    	navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-
-    	var constraints = {
-    		audio: false,
-    		video: {
-    			mandatory: {
-    				minWidth: 640,
-    				maxWidth: 640,
-    				minHeight: 360,
-    				maxHeight: 480,
-
-    			}
-    		}
-    	};
     	var videoArea = document.querySelector("video");
+    	var videoSelect = document.querySelector("#camera");
+    	// camera option이 바뀔 때마다, permission 새로 요청, 새로운 video stream 가져오기
+    	videoSelect.onchange = startStream;
 
-    	navigator.getUserMedia(constraints, onSuccess, onError);
+    	// videoSelect의 camera option 선택지 생성하기
+    	navigator.mediaDevices.enumerateDevices()
+    	.then(function(devices){
+    		for (var i = 0; len = devices.length; i++){
+    			// 1. device가 video type인지 확인하기
+    			var device = devices[i];
+    			if (device.kind === "videoinput") {
+    				// 2. videoSelect에 넣을 option element 만들기
+    				var option = document.createElement('option');
+    				option.value = device.deviceId;
+    				option.text = device.kind + ": " + device.label || " id = " + "device.deviceId";
+    				// 3. videoSelect에 append하기
+    				videoSelect.appendChild(option);
+    			} 
+    		}
+    		
+    	})
+    	.catch(function(err) {
+    		console.log(err.name + ": " + err.message);
+    	});
+
+    	startStream();
+
+    	// getUserMedia를 통해, 새로운 video stream을 가져오는 함수
+    	function startStream() {
+    		var videoDeviceID = videoSelect.value
+    		console.log(videoDeviceID)
+	    	var constraints = {
+	    		audio: false,
+	    		// min, max or exact
+	    		video: {
+	    			width: { exact: 300 },
+    				height: { exact: 525 },
+    				deviceId: videoDeviceID ? { exact: videoDeviceID } : undefined
+    			}
+	    	};
+
+	    	navigator.mediaDevices.getUserMedia(constraints)
+	    	.then(function(stream) {
+	    		// use the stream
+	    		onSuccess(stream);
+	    	})
+	    	.catch(function(err) {
+	    		// catch the error
+	    		onError(err);
+	    	})
+
+    	}
 
     	function onSuccess(stream) {
     		console.log("Success! We have a stream!");
     		videoArea.srcObject = stream;
     		videoArea.className = "grayscale_filter";
-    		// createObjectURL is being deprecated
-    		// videoArea.src = window.URL.createObjectURL(stream);
     		videoArea.play();
     	}
 
