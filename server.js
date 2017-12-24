@@ -1,6 +1,17 @@
 // Express 서버 생성
-var express = require('express');
+var express = require('express.io');
 var app = express();
+app.http().io();
+var PORT = 3000;
+
+// 새로운 사람들이 채팅룸에 입장할시, 해당 Client들에게 msg 전달하기
+app.io.route('ready', function(req) {
+	req.io.join(req.data);
+	app.io.room(req.data).broadcast('announce', {
+		message: 'New client in the ' + req.data + 'room .'
+	})
+})
+
 // 라우터 모듈인 main.js 를 불러와서 app 에 전달해줍니다.
 var router = require('./router/main')(app);
 
@@ -13,7 +24,7 @@ app.engine('html', require('ejs').renderFile);
 
 
 var server = app.listen(3000, function(){
-	console.log('Express server has started on port 3000')
+	console.log('Express server has started on port ' + PORT)
 })
 
 app.use(express.static('public'));
