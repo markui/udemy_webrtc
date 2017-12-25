@@ -2,42 +2,91 @@
   <head>
     <title>O'Reilly Introduction to WebRTC</title>
     <link rel="stylesheet" type="text/css" href="css/style.css">
+    <script src="/socket.io/socket.io.js"></script>
   </head>
   <body>
     <p>Hello, WebRTC!</p>
+    <!-- Video Input Device 선택창 -->
     <div>
     	Video: <select id="camera"></select>
     </div>
+    <!-- Video 영역 -->  
     <video></video>
+    <div>
+        <label>Your name</label><input id="myName" type="text" />
+        <label>Message</label><input id="myMessage" type="text" />
+        <input id="sendMessage" type="submit" />
+        <div id="chatArea">Message Output:</br></div>
+    </div>
 
     <script type="text/javascript">
     	var videoArea = document.querySelector("video");
     	var videoSelect = document.querySelector("#camera");
+        var myName = document.querySelector("#myName");
+        var myMessage = document.querySelector("#myMessage");
+        var sendMessage = document.querySelector("#sendMessage");
+        var chatArea = document.querySelector("#chatArea");
+        // 채팅방의 이름 (원래는 유저가 채팅방 이름 선택해서 입장할 수 있게끔 설계하는 것이 일반적)
+        var ROOM = "chat";
+
+
+
+        // videoSelect의 camera option 선택지 생성하기
+        navigator.mediaDevices.enumerateDevices()
+        .then(function(devices){
+            console.log(devices);
+            for (var i = 0; len = devices.length; i++){
+                // 1. device가 video type인지 확인하기
+                var device = devices[i];
+                if (device.kind === "videoinput") {
+                    // 2. videoSelect에 넣을 option element 만들기
+                    var option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.kind + ": " + device.label || " id = " + "device.deviceId";
+                    // 3. videoSelect에 append하기
+                    videoSelect.appendChild(option);
+                } 
+            }
+            
+        })
+        .catch(function(err) {
+            console.log(err.name + ": " + err.message);
+        });
+
+
     	// camera option이 바뀔 때마다, permission 새로 요청, 새로운 video stream 가져오기
     	videoSelect.onchange = startStream;
 
-    	// videoSelect의 camera option 선택지 생성하기
-    	navigator.mediaDevices.enumerateDevices()
-    	.then(function(devices){
-    		for (var i = 0; len = devices.length; i++){
-    			// 1. device가 video type인지 확인하기
-    			var device = devices[i];
-    			if (device.kind === "videoinput") {
-    				// 2. videoSelect에 넣을 option element 만들기
-    				var option = document.createElement('option');
-    				option.value = device.deviceId;
-    				option.text = device.kind + ": " + device.label || " id = " + "device.deviceId";
-    				// 3. videoSelect에 append하기
-    				videoSelect.appendChild(option);
-    			} 
-    		}
-    		
-    	})
-    	.catch(function(err) {
-    		console.log(err.name + ": " + err.message);
-    	});
-
+    	
     	startStream();
+
+
+        // Socket.io Connection Setup
+
+        // 1. connect to socket.io server
+        io = io.connect();
+        // 2. 채팅 룸에게 'ready'라는 message-type을 전달하는 것 - server.js route 참고
+        io.emit('ready', ROOM);
+        // 3. 'announce' type message(server.js route)를 receive할 경우 (방에 입장)
+        io.on('announce', function(data) {
+            displayMessage(data.message);
+        });력
+        // 4. 'message' type message(server.js route)를 receive할 경우 (빙에서 메시지 입)
+        io.on('message', function(data) {
+            displayMessage(data.author + ": " + data.message);
+        });
+
+        function displayMessage(message) {
+            chatArea.innerHTML = chatArea.innerHTML + "<br/>" + message;
+        };
+
+        sendMessage.addEventListener("click", function(e) {
+            io.emit('send', {"author": myName.value, "message": myMessage.value, "room": ROOM})
+        });
+
+
+
+
 
     	// getUserMedia를 통해, 새로운 video stream을 가져오는 함수
     	function startStream() {

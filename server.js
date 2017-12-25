@@ -4,14 +4,6 @@ var app = express();
 app.http().io();
 var PORT = 3000;
 
-// 새로운 사람들이 채팅룸에 입장할시, 해당 Client들에게 msg 전달하기
-app.io.route('ready', function(req) {
-	req.io.join(req.data);
-	app.io.room(req.data).broadcast('announce', {
-		message: 'New client in the ' + req.data + 'room .'
-	})
-})
-
 // 라우터 모듈인 main.js 를 불러와서 app 에 전달해줍니다.
 var router = require('./router/main')(app);
 
